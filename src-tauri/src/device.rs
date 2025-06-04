@@ -43,27 +43,38 @@ pub fn start_device_listener() -> mpsc::Receiver<DeviceMessage> {
     let (tx, rx) = mpsc::channel::<DeviceMessage>(10);
 
     extern "C" fn callback(info: *const AMDeviceNotificationCallbackInfo, context: *mut c_void) {
+        if info.is_null() || context.is_null() {
+            log::error!("Received null pointer in device notification callback");
+            return;
+        }
+        
         let tx = unsafe { &*(context as *mut mpsc::Sender<DeviceMessage>) };
         let info = unsafe { *info };
+        
+        if info.device.is_null() {
+            log::error!("Received null device pointer in notification");
+            return;
+        }
+        
         let device = unsafe { Device::new(info.device) };
-
         let tx = tx.clone();
 
         async_runtime::spawn(async move {
-            tx.send(DeviceMessage {
+            if let Err(e) = tx.send(DeviceMessage {
                 device,
                 action: info.action,
             })
-            .await
-            .unwrap();
-            mem::forget(tx);
+            .await {
+                log::error!("Failed to send device message: {}", e);
+            }
         });
     }
 
     spawn_blocking(move || {
         let boxed = Arc::new(tx);
         let mut not = MaybeUninit::uninit();
-        unsafe {
+        
+        let result = unsafe {
             AMDeviceNotificationSubscribe(
                 callback,
                 0,
@@ -72,6 +83,12 @@ pub fn start_device_listener() -> mpsc::Receiver<DeviceMessage> {
                 not.as_mut_ptr(),
             )
         };
+        
+        if result != 0 {
+            log::error!("Failed to subscribe to device notifications: {}", result);
+            return;
+        }
+        
         unsafe { CFRunLoopRun() };
     });
 
@@ -88,47 +105,87 @@ pub fn start_device_sender(handle: AppHandle) -> async_runtime::JoinHandle<()> {
         loop {
             select! {
                 _ = timer.tick() => {
+                    let device_count = devices.len();
+                    if device_count > 0 {
+                        log::debug!("Checking {} connected devices", device_count);
+                    }
+                    
+                    let mut errors = Vec::new();
+                    let mut events = Vec::new();
+                    
                     for (device, conn) in devices.iter() {
                         match get_device_ioreg(conn) {
-                            Ok(res) => DevicePowerTickEvent {
-                                udid: device.udid.clone(),
-                                data: NormalizedResource::from(&res),
-                            }.emit(&handle).unwrap(),
+                            Ok(res) => {
+                                let event = DevicePowerTickEvent {
+                                    udid: device.udid.clone(),
+                                    data: NormalizedResource::from(&res),
+                                };
+                                events.push(event);
+                            },
                             Err(err) => {
-                                log::error!("Failed to get IORegistry: {err}");
+                                log::error!("Failed to get IORegistry for device {}: {}", device.udid, err);
+                                errors.push(device.udid.clone());
                             }
+                        }
+                    }
+                    
+                    for event in events {
+                        if let Err(e) = event.emit(&handle) {
+                            log::error!("Failed to emit device power tick event: {}", e);
                         }
                     }
                 }
                 Some(DeviceMessage { device, action }) = rx.recv() => {
                     match action {
                         Action::Attached => {
-                            // unwrap pair
-                            device.prepare_device().unwrap();
-                            let conn = device.start_service("com.apple.mobile.diagnostics_relay");
-
-                            DeviceEvent {
-                                udid: device.udid.clone(),
-                                // must call `device.name()` after `device.prepare_device()`
-                                // or name will be empty causing panic
-                                name: device.name(),
-                                interface: device.interface_type,
-                                action,
-                            }.emit(&handle).unwrap();
-
-                            devices.insert(device, conn);
+                            log::info!("Device attached with interface: {:?}", device.interface_type);
+                            
+                            match device.prepare_device() {
+                                Ok(_) => {
+                                    let device_name = device.name();
+                                    log::info!("Device prepared successfully: {}", device_name);
+                                    
+                                    match device.start_service("com.apple.mobile.diagnostics_relay") {
+                                        conn => {
+                                            let event = DeviceEvent {
+                                                udid: device.udid.clone(),
+                                                name: device_name,
+                                                interface: device.interface_type,
+                                                action,
+                                            };
+                                            
+                                            if let Err(e) = event.emit(&handle) {
+                                                log::error!("Failed to emit device event: {}", e);
+                                            } else {
+                                                devices.insert(device, conn);
+                                            }
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    log::error!("Failed to prepare device {}: {:?}", device.udid, e);
+                                }
+                            }
                         },
                         Action::Detached => {
-                            log::debug!("Device detached: {}", device.udid);
-                            DeviceEvent {
+                            log::info!("Device detached: {}", device.udid);
+                            
+                            let event = DeviceEvent {
                                 udid: device.udid.clone(),
                                 name: String::new(),
                                 interface: device.interface_type,
                                 action,
-                            }.emit(&handle).unwrap();
+                            };
+                            
+                            if let Err(e) = event.emit(&handle) {
+                                log::error!("Failed to emit device detach event: {}", e);
+                            }
+                            
                             devices.remove(&device);
                         },
-                        _ => ()
+                        _ => {
+                            log::debug!("Unhandled device action: {:?} for {}", action, device.udid);
+                        }
                     }
                 }
             }
@@ -141,20 +198,25 @@ pub fn setup_device_listener(app: AppHandle) {
         let event = event.payload;
         let app_state = app.state::<DeviceState>();
 
-        use scopefn::Run;
-        app_state
-            .write()
-            .unwrap()
-            .entry(event.udid.clone())
-            .or_insert_with(|| (event.name, HashSet::new()))
-            .run(|e| match event.action {
-                Action::Attached => {
-                    e.1.insert(event.interface);
+        match app_state.write() {
+            Ok(mut state) => {
+                let entry = state.entry(event.udid.clone()).or_insert_with(|| (event.name, HashSet::new()));
+                
+                match event.action {
+                    Action::Attached => {
+                        entry.1.insert(event.interface);
+                        log::debug!("Added interface {:?} for device {}", event.interface, event.udid);
+                    }
+                    Action::Detached => {
+                        entry.1.remove(&event.interface);
+                        log::debug!("Removed interface {:?} for device {}", event.interface, event.udid);
+                    }
+                    _ => (),
                 }
-                Action::Detached => {
-                    e.1.remove(&event.interface);
-                }
-                _ => (),
-            });
+            },
+            Err(e) => {
+                log::error!("Failed to acquire write lock on device state: {}", e);
+            }
+        }
     });
 }
