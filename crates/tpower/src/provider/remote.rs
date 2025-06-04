@@ -26,11 +26,9 @@ pub enum DeviceDataError {
 
 pub fn get_device_ioreg(conn: &ServiceConnection) -> Result<IORegistry, DeviceDataError> {
     // Create the request dictionary
-    let request = unsafe {
-        cfdic! {
-            "EntryClass" = "IOPMPowerSource"
-            "Request" = "IORegistry"
-        }
+    let request = cfdic! {
+        "EntryClass" = "IOPMPowerSource"
+        "Request" = "IORegistry"
     };
     
     // Verify request is valid - use as_concrete_TypeRef which should not be null

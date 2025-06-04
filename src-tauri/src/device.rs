@@ -74,20 +74,17 @@ pub fn start_device_listener() -> mpsc::Receiver<DeviceMessage> {
         let boxed = Arc::new(tx);
         let mut not = MaybeUninit::uninit();
         
-        let subscription_result = unsafe {
+        unsafe {
             AMDeviceNotificationSubscribe(
                 callback,
                 0,
                 0,
                 Arc::as_ptr(&boxed) as *mut _,
                 not.as_mut_ptr(),
-            )
+            );
         };
         
-        if subscription_result != 0 {
-            log::error!("Failed to subscribe to device notifications: {}", subscription_result);
-            return;
-        }
+        log::info!("Device notification subscription started");
         
         unsafe { CFRunLoopRun() };
     });
@@ -198,24 +195,27 @@ pub fn setup_device_listener(app: AppHandle) {
     
     DeviceEvent::listen(&app, move |event| {
         let event = event.payload;
-        let app_state = app_handle.state::<DeviceState>();
-
-        if let Ok(mut state) = app_state.write() {
-            let entry = state.entry(event.udid.clone()).or_insert_with(|| (event.name, HashSet::new()));
-            
-            match event.action {
-                Action::Attached => {
-                    entry.1.insert(event.interface);
-                    log::debug!("Added interface {:?} for device {}", event.interface, event.udid);
+        
+        let state_ref = app_handle.state::<DeviceState>();
+        
+        {
+            if let Ok(mut state) = state_ref.write() {
+                let entry = state.entry(event.udid.clone()).or_insert_with(|| (event.name, HashSet::new()));
+                
+                match event.action {
+                    Action::Attached => {
+                        entry.1.insert(event.interface);
+                        log::debug!("Added interface {:?} for device {}", event.interface, event.udid);
+                    }
+                    Action::Detached => {
+                        entry.1.remove(&event.interface);
+                        log::debug!("Removed interface {:?} for device {}", event.interface, event.udid);
+                    }
+                    _ => (),
                 }
-                Action::Detached => {
-                    entry.1.remove(&event.interface);
-                    log::debug!("Removed interface {:?} for device {}", event.interface, event.udid);
-                }
-                _ => (),
+            } else {
+                log::error!("Failed to acquire write lock on device state");
             }
-        } else {
-            log::error!("Failed to acquire write lock on device state");
         }
     });
 }
