@@ -55,8 +55,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "minimumSystemVersion": "10.15",
-      "architecture": ["x86_64", "aarch64"]
+      "minimumSystemVersion": "10.15"
     }
   }
 }
