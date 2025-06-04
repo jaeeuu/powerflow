@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: universal-apple-darwin
+          - target: x86_64-apple-darwin
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,16 +28,13 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-apple-darwin,aarch64-apple-darwin
+          targets: x86_64-apple-darwin
 
       - name: Set up .cargo/config.toml
         run: |
           mkdir -p .cargo
           cat > .cargo/config.toml << EOF
           [build]
-          rustflags = ["-C", "target-cpu=native"]
-
-          [target.aarch64-apple-darwin]
           rustflags = ["-C", "target-cpu=native"]
 
           [target.x86_64-apple-darwin]
@@ -59,7 +56,7 @@ jobs:
           releaseBody: |
             Powerflow v__VERSION__
             
-            支持macOS 10.15+，包括Apple Silicon (M1/M2/M3/M4)和Intel芯片。
+            支持macOS 10.15+，仅支持Intel芯片。
             
             ### 安装方法
             下载DMG文件，打开并将应用拖到Applications文件夹中。
