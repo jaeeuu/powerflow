@@ -1,10 +1,7 @@
-name: build
+name: development-build
 
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:  # 允许手动触发工作流
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   build-macos:
@@ -49,22 +46,17 @@ jobs:
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
-          # https://github.com/tauri-apps/tauri-action/issues/740
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         with:
-          tagName: v__VERSION__
-          releaseName: v__VERSION__
-          releaseBody: |
-            Powerflow v__VERSION__
-            
-            支持macOS 10.15+，包括Apple Silicon (M1/M2/M3/M4)和Intel芯片。
-            
-            ### 安装方法
-            下载DMG文件，打开并将应用拖到Applications文件夹中。
-          releaseDraft: true
-          prerelease: false
+          includeDebug: true
           args: --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: powerflow-macos
+          path: |
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+          if-no-files-found: error 
