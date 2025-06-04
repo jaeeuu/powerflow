@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     ffi::c_void,
-    mem::{self, MaybeUninit},
+    mem::{MaybeUninit},
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -74,7 +74,7 @@ pub fn start_device_listener() -> mpsc::Receiver<DeviceMessage> {
         let boxed = Arc::new(tx);
         let mut not = MaybeUninit::uninit();
         
-        let result = unsafe {
+        let subscription_result = unsafe {
             AMDeviceNotificationSubscribe(
                 callback,
                 0,
@@ -84,8 +84,8 @@ pub fn start_device_listener() -> mpsc::Receiver<DeviceMessage> {
             )
         };
         
-        if result != 0 {
-            log::error!("Failed to subscribe to device notifications: {}", result);
+        if subscription_result != 0 {
+            log::error!("Failed to subscribe to device notifications: {}", subscription_result);
             return;
         }
         
@@ -194,29 +194,28 @@ pub fn start_device_sender(handle: AppHandle) -> async_runtime::JoinHandle<()> {
 }
 
 pub fn setup_device_listener(app: AppHandle) {
-    DeviceEvent::listen(&app.clone(), move |event| {
+    let app_handle = app.clone();
+    
+    DeviceEvent::listen(&app, move |event| {
         let event = event.payload;
-        let app_state = app.state::<DeviceState>();
+        let app_state = app_handle.state::<DeviceState>();
 
-        match app_state.write() {
-            Ok(mut state) => {
-                let entry = state.entry(event.udid.clone()).or_insert_with(|| (event.name, HashSet::new()));
-                
-                match event.action {
-                    Action::Attached => {
-                        entry.1.insert(event.interface);
-                        log::debug!("Added interface {:?} for device {}", event.interface, event.udid);
-                    }
-                    Action::Detached => {
-                        entry.1.remove(&event.interface);
-                        log::debug!("Removed interface {:?} for device {}", event.interface, event.udid);
-                    }
-                    _ => (),
+        if let Ok(mut state) = app_state.write() {
+            let entry = state.entry(event.udid.clone()).or_insert_with(|| (event.name, HashSet::new()));
+            
+            match event.action {
+                Action::Attached => {
+                    entry.1.insert(event.interface);
+                    log::debug!("Added interface {:?} for device {}", event.interface, event.udid);
                 }
-            },
-            Err(e) => {
-                log::error!("Failed to acquire write lock on device state: {}", e);
+                Action::Detached => {
+                    entry.1.remove(&event.interface);
+                    log::debug!("Removed interface {:?} for device {}", event.interface, event.udid);
+                }
+                _ => (),
             }
+        } else {
+            log::error!("Failed to acquire write lock on device state");
         }
     });
 }
