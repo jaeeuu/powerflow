@@ -64,17 +64,14 @@ pub fn start_sender<R: Runtime>(
 
     let mut timer = time::interval(Duration::from_millis(
         app.pinia()
-            .try_get::<u64>("preference", "updateInterval")
-            .unwrap_or(2000),
+            .get_or("preference", "updateInterval", 2000_u64),
     ));
-    let mut status_bar_item = app
-        .pinia()
-        .try_get::<StatusBarItem>("preference", "statusBarItem")
-        .unwrap_or(StatusBarItem::System);
+    let mut status_bar_item =
+        app.pinia()
+            .get_or("preference", "statusBarItem", StatusBarItem::System);
     let mut show_charging = app
         .pinia()
-        .try_get::<bool>("preference", "showCharging")
-        .unwrap_or(true);
+        .get_or("preference", "showCharging", true);
 
     async_runtime::spawn(async move {
         loop {

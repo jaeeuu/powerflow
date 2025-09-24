@@ -45,7 +45,7 @@ pub fn setup_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         ))
         .separator()
         .item(
-            &MenuItemBuilder::with_id(MenuEvent::Preferences, "Preferences")
+            &MenuItemBuilder::with_id(MenuEvent::Preferences.as_ref(), "Preferences")
                 .accelerator("Cmd+,")
                 .build(app)?,
         )
