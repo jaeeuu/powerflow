@@ -3820,7 +3820,7 @@ dependencies = [
 
 [[package]]
 name = "powerflow"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "bincode",
  "chrono",
@@ -3828,7 +3828,6 @@ dependencies = [
  "derive_more 2.0.1",
  "log",
  "objc",
- "objc-sys",
  "objc2 0.6.2",
  "objc2-app-kit 0.3.1",
  "objc2-foundation 0.3.1",
@@ -6217,7 +6216,7 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tpower"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "core-foundation 0.10.1",

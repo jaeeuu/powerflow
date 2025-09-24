@@ -101,7 +101,7 @@ pub enum InterfaceType {
 }
 
 #[link(name = "MobileDevice", kind = "framework")]
-extern "C" {
+unsafe extern "C" {
     pub fn AMDCreateDeviceList() -> CFArrayRef;
     pub fn AMDeviceNotificationSubscribe(
         callback: AMDeviceNotificationCallback,

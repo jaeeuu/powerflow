@@ -1,9 +1,9 @@
 [package]
 name = "powerflow"
-version = "0.2.2"
+version = "0.2.3"
 description = "Monitoring power usage of mac and iOS devices"
 authors = [ "Samuel Lyon" ]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -73,5 +73,3 @@ objc = "0.2.7"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 
-[target.'cfg(not(target_vendor = "apple"))'.dependencies]
-objc-sys = { version = "0.3.5", default-features = false, features = [ "std", "gnustep-1-7" ] }
