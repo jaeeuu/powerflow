@@ -23,7 +23,7 @@ pub fn setup_tray_icon<R: Runtime>(app: &impl Manager<R>) -> tauri::Result<()> {
 
     let tray_icon = TrayIconBuilder::with_id("main")
         .title("0 w")
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .menu(&menu)
         .build(app)
         .unwrap();
