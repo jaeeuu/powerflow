@@ -33,42 +33,45 @@ tauri = { version = "2", features = [
   "tray-icon",
   "devtools",
 ] }
-tauri-plugin-opener = "2"
-tauri-plugin-positioner = { version = "2.0.0", features = [ "tray-icon" ] }
-tauri-plugin-notification = "2"
-tauri-plugin-pinia = "0.10"
-tauri-plugin-shell = "2"
-tauri-plugin-log = "2"
+tauri-plugin-opener = "2.5.0"
+tauri-plugin-positioner = { version = "2.3.0", features = [ "tray-icon" ] }
+tauri-plugin-notification = "2.3.1"
+tauri-plugin-pinia = "4.0.2"
+tauri-plugin-shell = "2.3.1"
+tauri-plugin-log = "2.7.0"
 tauri-plugin-nspopover = { git = "https://github.com/freethinkel/tauri-nspopover-plugin.git", branch = "tauri-beta/v2", version = "3.0.0" }
 serde = { version = "1", features = [ "derive" ] }
 serde_json = "1"
-tokio = { version = "1.45.0", features = [ "full" ] }
-specta = { version = "=2.0.0-rc.20", features = [
+tokio = { version = "1.47.1", features = [ "full" ] }
+specta = { version = "=2.0.0-rc.22", features = [
   "chrono",
   "serde",
   "serde_json"
 ] }
-specta-typescript = "0.0.7"
-tauri-specta = { version = "=2.0.0-rc.20", features = [
+specta-typescript = "0.0.9"
+tauri-specta = { version = "=2.0.0-rc.21", features = [
   "derive",
   "typescript"
 ] }
-strum = "0.26.3"
-objc2 = "0.6.0"
-objc2-app-kit = "0.3.0"
-objc2-foundation = "0.3.0"
-log = "0.4.22"
-thiserror = "2.0.9"
+strum = "0.27.2"
+objc2 = "0.6.2"
+objc2-app-kit = "0.3.1"
+objc2-foundation = "0.3.1"
+log = "0.4.28"
+thiserror = "2.0.16"
 scopefn = "0.0.2"
-sqlx = { version = "0.8.2", features = [
+sqlx = { version = "0.8.6", features = [
   "chrono",
   "runtime-tokio",
   "sqlite"
 ] }
-bincode = "1.3.3"
-chrono = { version = "0.4.39", features = [ "serde" ] }
-derive_more = { version = "1.0.0", features = [ "deref" ] }
-cocoa = "0.26.0"
+bincode = "2.0.1"
+chrono = { version = "0.4.42", features = [ "serde" ] }
+derive_more = { version = "2.0.1", features = [ "deref" ] }
+cocoa = "0.26.1"
 objc = "0.2.7"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+
+[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+objc-sys = { version = "0.3.5", default-features = false, features = [ "std", "gnustep-1-7" ] }
