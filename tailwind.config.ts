@@ -1,6 +1,60 @@
 import tailwindcssForm from '@tailwindcss/forms'
 import tailwindcssAnimate from 'tailwindcss-animate'
 
+const withOpacity = (variable: `--${string}`) => ({ opacityValue }: { opacityValue?: string }) => {
+  if (opacityValue === undefined) {
+    return `hsl(var(${variable}))`
+  }
+
+  return `hsl(var(${variable}) / ${opacityValue})`
+}
+
+const semanticColors = {
+  background: withOpacity('--background'),
+  foreground: withOpacity('--foreground'),
+  primary: {
+    DEFAULT: withOpacity('--primary'),
+    foreground: withOpacity('--primary-foreground'),
+  },
+  secondary: {
+    DEFAULT: withOpacity('--secondary'),
+    foreground: withOpacity('--secondary-foreground'),
+  },
+  destructive: {
+    DEFAULT: withOpacity('--destructive'),
+    foreground: withOpacity('--destructive-foreground'),
+  },
+  muted: {
+    DEFAULT: withOpacity('--muted'),
+    foreground: withOpacity('--muted-foreground'),
+  },
+  accent: {
+    DEFAULT: withOpacity('--accent'),
+    foreground: withOpacity('--accent-foreground'),
+  },
+  popover: {
+    DEFAULT: withOpacity('--popover'),
+    foreground: withOpacity('--popover-foreground'),
+  },
+  card: {
+    DEFAULT: withOpacity('--card'),
+    foreground: withOpacity('--card-foreground'),
+  },
+} as const
+
+const colorPalette = {
+  border: {
+    DEFAULT: withOpacity('--border'),
+  },
+  input: {
+    DEFAULT: withOpacity('--input'),
+  },
+  ring: {
+    DEFAULT: withOpacity('--ring'),
+  },
+  ...semanticColors,
+} as const
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -19,40 +73,25 @@ export default {
       },
     },
     extend: {
-      colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
+      colors: colorPalette,
+      backgroundColor: semanticColors,
+      textColor: semanticColors,
+      borderColor: {
+        DEFAULT: withOpacity('--border'),
+        border: withOpacity('--border'),
+        input: withOpacity('--input'),
+        primary: withOpacity('--primary'),
+        secondary: withOpacity('--secondary'),
+        destructive: withOpacity('--destructive'),
+        accent: withOpacity('--accent'),
+        muted: withOpacity('--muted'),
+      },
+      ringColor: {
+        DEFAULT: withOpacity('--ring'),
+        ring: withOpacity('--ring'),
+      },
+      ringOffsetColor: {
+        background: withOpacity('--background'),
       },
       borderRadius: {
         xl: 'calc(var(--radius) + 4px)',
