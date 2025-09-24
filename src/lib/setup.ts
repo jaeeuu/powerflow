@@ -1,7 +1,7 @@
 import type { App } from 'vue'
 import messages from '@intlify/unplugin-vue-i18n/messages'
 import { MotionPlugin } from '@vueuse/motion'
-import { createPlugin as createTauriPiniaPlugin } from 'tauri-plugin-pinia'
+import { createPlugin as createTauriPiniaPlugin } from '@tauri-store/pinia'
 import { createI18n } from 'vue-i18n'
 import '../assets/index.css'
 
